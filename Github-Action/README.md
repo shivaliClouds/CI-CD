@@ -1,0 +1,1 @@
+This project automates the process of deploying Apache Web Server to an EC2 instance using GitHub Actions. When a pull request is merged, the workflow runs and installs Apache on the EC2 instance, displaying a confirmation message on the Apache homepage.

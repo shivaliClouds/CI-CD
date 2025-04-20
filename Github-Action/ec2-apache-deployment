@@ -1,0 +1,51 @@
+name: Deploy to EC2
+
+# Trigger the workflow when a pull request review is submitted
+on:
+  pull_request_review:
+    types:
+      - submitted  # This workflow runs when a pull request review is submitted
+
+jobs:
+  deploy:
+    # Only run this job if the pull request has been merged
+    if: github.event.pull_request.merged == true
+
+    runs-on: ubuntu-latest  # The job will run in an Ubuntu environment
+
+    steps:
+      # Step 1: Checkout the repository code so we can use it
+      - name: action
+        uses: actions/checkout@v3  # Action to fetch the code from the repository
+
+      # Step 2: Debug the event data for easier troubleshooting
+      - name: Debug Event Data
+        run: |
+          # Print out the event data to see what triggered the workflow
+          echo "Event Data: ${{ toJson(github.event) }}" 
+
+      # Step 3: Prepare and decode the SSH key for EC2 access
+      - name: SSH Key
+        run: |
+          # Decode the SSH key stored securely in GitHub Secrets
+          echo "${{ secrets.SSHKEY }}" | base64 --decode > ec2-key.pem
+          # Set proper file permissions for the SSH key (important for security)
+          chmod 400 ec2-key.pem
+
+      # Step 4: SSH into EC2 instance and install Apache server
+      - name: Install Apache on EC2
+        run: |
+          # SSH into the EC2 instance with the SSH key
+          ssh -o StrictHostKeyChecking=no -i ec2-key.pem ubuntu@3.84.202.139
+          # Update the EC2 instance's package list
+          sudo apt update -y
+          # Install Apache web server
+          sudo apt install apache2 -y
+          # Start the Apache service
+          sudo systemctl start apache2
+          # Ensure Apache starts automatically on system restart
+          sudo systemctl enable apache2
+
+          # Step 5: Modify the homepage to show a custom message
+          # This command updates the default Apache homepage with a personalized message
+          echo "<h1>Hello, apache is running(pull request)</h1>" | sudo tee /var/www/html/index.html
